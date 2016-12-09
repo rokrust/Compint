@@ -1,5 +1,4 @@
-#include "neuron.h"
-
+#include "network.h"
 
 int main(){
     NeuralNetwork network;
