@@ -1,11 +1,11 @@
-#include "network.h"
+//#include "network.h"
 
-int main(){
-    NeuralNetwork network;
+int main() {
+	NeuralNetwork network;
 
-    network.initialize_data();
-    network.train_network_from_data();
+	network.initialize_data();
+	network.train_network_from_data();
 
 
-    return 0;
+	return 0;
 }
