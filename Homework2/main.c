@@ -1,11 +1,10 @@
-//#include "network.h"
+#include "network.h"
 
 int main() {
-	NeuralNetwork network;
+	const int n_layers = 1;
+	int n_layer_inputs[1] = { 1 };
 
-	network.initialize_data();
-	network.train_network_from_data();
-
+	NeuralNetwork *network = initialize_network(n_layer_inputs, n_layers);
 
 	return 0;
 }
