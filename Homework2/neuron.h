@@ -1,5 +1,7 @@
 #pragma once
 #include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 struct Neuron {
 	int N_INPUTS;
@@ -16,10 +18,11 @@ double _action_function(const double summed_weighted_input) {
 
 
 //Maybe add a bias term
-double output(const Neuron* neuron, const double* input) {
+double output(Neuron* neuron, double* input) {
 	double summed_weighted_input = 0;
 
 	for (int j = 0; j < neuron->N_INPUTS; j++) {
+	//	printf("Weight: %f\n", neuron->_weights[j]);
 		summed_weighted_input += neuron->_weights[j] * input[j];
 	}
 
@@ -35,13 +38,19 @@ void update_neuron_weights(Neuron* neuron, int data_class, double output, double
 	}
 }
 
-void initialize_neuron(Neuron* neuron, int n_inputs) {
+
+//segfault coming from weights after init
+Neuron* initialize_neuron(int n_inputs) {
+	Neuron* neuron = malloc(sizeof(Neuron));
 	neuron->N_INPUTS = n_inputs;
 	neuron->_weights = malloc(sizeof(double)*n_inputs);
-	
+
 	for (int i = 0; i < n_inputs; i++) {
-		double random_weight = (double)(rand() % 100) / 10000;
+	
+		double random_weight = (double)(rand() % 100) / 100;
 		neuron->_weights[i] = random_weight;
 	}
+	
+	return neuron;
 }
 
