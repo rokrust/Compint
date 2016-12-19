@@ -3,15 +3,23 @@
 
 int main() {
 
-	const int n_layers = 5;
-	int n_layer_inputs[5] =< { 2, 5, 3, 2, 1};
-
-	double* inputList[1000];
+	static double inputList[1000][2];
 	int classList[1000];
-	int largest_value = read_training_data(inputList, data_class);
-
-	NeuralNetwork *network = initialize_network(n_layer_inputs, n_layers);
-	train_network_from_data(network, inputList, data_class);
+	FILE* fp = fopen("testInput10A.txt", "r"); //Static to continue reading test data
 	
+	//Don't count the input layer. Must however count the outputs.
+	const int n_layers = 2;
+	int n_layer_inputs[3] = { 2, 3, 1};
+	NeuralNetwork *network = initialize_network(n_layer_inputs, n_layers);
+
+	//Learning/training phase
+	read_training_data(fp, inputList, classList);
+	train_network_from_data(network, inputList, classList);
+
+	//Running phase
+	int n_inputs = read_running_data(fp, inputList);
+	run_network_from_data(network, inputList, n_inputs);
+
+	fclose(fp);
 	return 0;
 }
