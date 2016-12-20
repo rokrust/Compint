@@ -18,10 +18,9 @@ typedef struct Neuron Neuron;
 
 
 double _action_function(const double summed_weighted_input);
-double _diff_action_function(double net_input);
+double _diff_action_function(double input);
 double output(Neuron* neuron, double* input);
 double net_input(Neuron* neuron, double* input);
-void update_neuron_weights(Neuron* neuron, int data_class, double output, double* input, double _LEARNING_RATE);
 Neuron* initialize_neuron(int n_inputs);
 
 
@@ -29,8 +28,8 @@ double _action_function(const double summed_weighted_input) {
 	return tanh(summed_weighted_input);
 }
 
-double _diff_action_function(double net_input){
-	return 1-pow(tanh(net_input), 2);
+double _diff_action_function(double input){
+	return 1-pow(tanh(input), 2);
 }
 
 //Maybe add a bias term
@@ -39,15 +38,15 @@ double output(Neuron* neuron, double* input) {
 }
 
 double net_input(Neuron* neuron, double* input){
-	double net_input = 0;
+	double net = 0;
 
 	for (int i = 0; i < neuron->N_INPUTS; i++) {
-		net_input += neuron->_weights[i] * input[i];
+		net += neuron->_weights[i] * input[i];
 	}
 
-	neuron->net_input = net_input;
+	neuron->net_input = net;
 
-	return net_input;
+	return net;
 }
 
 
@@ -59,7 +58,7 @@ Neuron* initialize_neuron(int n_inputs) {
 	//Initialize weights	
 	for (int i = 0; i < n_inputs; i++) {
 
-		double random_weight = (double)(rand() % 100) / 100;
+		double random_weight = (double)((rand() % 100)-49) / 100000;
 		neuron->_weights[i] = random_weight;
 	}
 	

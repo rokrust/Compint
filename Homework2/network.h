@@ -1,6 +1,6 @@
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
-#define learning_rate 0.2
+
 
 
 #include "neuron.h"
@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 
-#define _LEARNING_RATE 0.05
+#define _LEARNING_RATE 0.7
 
 struct NeuralNetwork {
 	int N_LAYERS;
@@ -19,15 +19,15 @@ struct NeuralNetwork {
 };
 typedef struct NeuralNetwork NeuralNetwork;
 
-
+double summed_error = 0;
 void copy_array(double* arr1, double* arr2, int length);
-void update_network_weights_if_necessary(NeuralNetwork* network, double out, int data_class, double* input);
+void update_network_weights(NeuralNetwork* network, double out, int data_class, double* input);
 double network_output(NeuralNetwork* network, double* start_input);
 int _convert_output_to_class(double output);
 
 //returns largest input for scaling purposes
 //in case it should be needed
-double read_training_data(FILE* fp, double inputs[][2], int data_class[]) {
+double read_training_data(FILE* fp, double inputs[][3], int data_class[]) {
 	double largest_input = -INFINITY;
 
 	int i = 0;
@@ -35,7 +35,7 @@ double read_training_data(FILE* fp, double inputs[][2], int data_class[]) {
 	
 	fgets(inputString, 200, fp);
 	sscanf(inputString, "%lf,%lf,%d\n", &(inputs[i][0]), &(inputs[i][1]), &(data_class[i]));
-
+	inputs[i][3] = 1.0;
 	while (data_class[i] != 0) { //end of training data
 		if(inputs[i][0] > largest_input){
 			//printf("Larger input found\n");
@@ -46,82 +46,95 @@ double read_training_data(FILE* fp, double inputs[][2], int data_class[]) {
 			largest_input = inputs[i][1];		
 		}
 		
+		//printf("Largest input: %lf\n", largest_input);
 		i++;
+		inputs[i][3] = 1.0;
 		fgets(inputString, 200, fp);	
 		sscanf(inputString, "%lf,%lf,%d\n", &(inputs[i][0]), &(inputs[i][1]), &(data_class[i]));
 	}
-
-	return largest_input;
+	
+	return fabs(largest_input);
 }
 
-void train_network_from_data(NeuralNetwork *network, double inputs[1000][2], int* data_class){
+void train_network_from_data(NeuralNetwork *network, double inputs[][3], int* data_class, double largest_value){
 	
 	double output;
 	for(int i = 0; data_class[i] != 0; i++){
-		output = network_output(network, inputs[i]);	
-		update_network_weights_if_necessary(network, output, data_class[i], inputs[i]);
+		//printf("Largest value: %lf\n", largest_value);
+		//inputs[i][0] /= largest_value;
+		//inputs[i][1] /= largest_value;
+		//data_class[i] /= largest_value;
+		//printf("%lf,%lf,%d\n", inputs[i][0], inputs[i][1], data_class[i]);		
+
+		output = network_output(network, inputs[i]);
+		//printf("output: %lf\n", output);	
+		update_network_weights(network, output, data_class[i], inputs[i]);
 	}
 
 }
 
 
-void update_network_weights_if_necessary(NeuralNetwork* network, double out, int data_class, double* input) {
-	//misclassification
-	//if (_convert_output_to_class(out) != data_class) {
-		//printf("Misclassification\n");
-		double delta_j[50]; //error gradient of all neurons in the next layer
-		double delta_i; //error gradient of current neuron
-		double error = (double)(data_class) - out;
+void update_network_weights(NeuralNetwork* network, double out, int target, double* input) {
+	double delta_j[50]; //error gradient of all neurons in the next layer
+	double delta_i; //error gradient of current neuron
+	double error = pow((double)(target) - out, 2);
+	//summed_error += error;
+	double diff_error = 2*((double)(target)-out);
+	double new_weights[100][100];
 
-		for(int layer = network->N_LAYERS-1; layer > 0; layer--){
-			//printf("Layer: %d\n", layer);
-			//printf(" First for\n");
+	//Iterate backwards through the network
+	for(int layer = network->N_LAYERS-1; layer >= 0; layer--){
+		for(int neuron = 0; neuron < network->_n_layer_inputs[layer+1]; neuron++){
 
-			for(int neuron = 0; neuron < network->_n_layer_inputs[layer-1]; neuron++){
-				//printf("  Second for\n");
-				
-				//Output neuron
-				if(layer == network->N_LAYERS-1){
-					//printf("   Weight: %lf\n", network->_neurons[0][0]._weights[0]);
-					//printf("   Output neuron found\n");
-					delta_i = 2*error;
-				}
-				
-				//Hidden neuron
-				else{
-					
-					printf("   Hidden layer neuron found\n");
-					double net_delta = 0;
-					for(int j = 0; j < network->_n_layer_inputs[layer+1]; j++){
-						printf("    Finding net_delta_j\n");
-						net_delta += network->_neurons[layer+1][j]._weights[neuron]*delta_j[j];
-					}
-
-					delta_i = _diff_action_function(network->_neurons[layer][neuron].net_input)*net_delta;
-				}
-
-				//Iterate through all weights and update them.				
-				
-				for(int i = 0; i < network->_neurons[layer][neuron].N_INPUTS; i++){
-					//printf("   Iterating through neuron weights\n");
-					double delta_w;
-
-					if(layer != 1){
-						delta_w = delta_i*_action_function(network->_neurons[layer-1][i].net_input);
-					}
-					else{
-						delta_w = delta_i*input[i];
-					}
-					network->_neurons[layer][neuron]._weights[i] += _LEARNING_RATE*delta_w;
-				}
-								
-						
-				delta_j[neuron] = delta_i;
+			//Output neuron
+			if(layer == network->N_LAYERS-1){
+				//printf("   Output neuron found\n");
+				delta_i = diff_error;
 			}
+				
+			//Hidden neuron
+			else{
+					
+				double net_delta = 0;
+				for(int j = 0; j < network->_n_layer_inputs[layer+2]; j++){
+					net_delta += network->_neurons[layer][j]._weights[neuron]*delta_j[j];
+				}
+
+				delta_i = _diff_action_function(network->_neurons[layer][neuron].net_input)*net_delta;
+			}
+
+			//Find new weights
+			for(int i = 0; i < network->_neurons[layer][neuron].N_INPUTS; i++){
+				double delta_w;
+				
+				//Non-input layer
+				if(layer != 0){
+					delta_w = _diff_action_function(network->_neurons[layer][i].net_input)*
+							  delta_i*_action_function(network->_neurons[layer-1][i].net_input);
+				}
+				
+				//Input layer
+				else{
+					delta_w = delta_i*input[i];
+				}
+
+				new_weights[layer][neuron] = delta_w
+			}
+								
+			delta_j[neuron] = delta_i;
+		}		
+	}
+
+	set_weights(network, new_weights);
+}
+
+void set_weights(Network* network, double new_weights[][100]){
+	for(int layer = 0; layer < network->N_LAYERS; layer++){
+		for(int neuron = 0; neuron < network->_n_layer_inputs[layer+1]; neuron++){
+			network->_neurons[layer][neuron]._weights[i] += _LEARNING_RATE*new_weights[layer][neuron];
+
 		}
-		//Gotta fix this function
-		//update_neuron_weights();
-	//}
+	}
 }
 
 
@@ -142,6 +155,7 @@ double network_output(NeuralNetwork* network, double* start_input) {
 		}
 		copy_array(input, out, network->_n_layer_inputs[layer]);
 	}
+	//printf("Weight: %lf\n", network->_neurons[0][1]._weights[1]);
 	//printf("Output: %lf\n", input[0]);
 	return input[0];
 }
@@ -192,21 +206,26 @@ void copy_array(double* arr1, double* arr2, int length) {
 	}
 }
 
-int read_running_data(FILE* fp, double inputs[][2]) {
+int read_running_data(FILE* fp, double inputs[][3]) {
 
 	char inputString[200];
 	
 	int i = 0;
 	while (fgets(inputString, 200, fp)) { //end of training data
 		sscanf(inputString, "%lf,%lf\n", &(inputs[i][0]), &(inputs[i][1]));
+		inputs[i][3] = 1;
 		i++;
 	}
+	//printf("%lf,%lf\n", (inputs[0][0]), (inputs[0][1]));
 	return i;
 }
 
-void run_network_from_data(NeuralNetwork* network, double inputs[][2], int n_inputs){
+void run_network_from_data(NeuralNetwork* network, double inputs[][3], int n_inputs, double largest_value){
 
 	for(int i = 0; i < n_inputs; i++){
+		//inputs[i][0] /= largest_value;
+		//inputs[i][1] /= largest_value;
 		printf("%+d\n", _convert_output_to_class(network_output(network, inputs[i])));			
 	}
 }
+
