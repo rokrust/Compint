@@ -7,11 +7,8 @@ struct Neuron {
 	int N_INPUTS;
 	double* _weights;
 	double net_input;
-	int is_output_neuron;
-	
-
-	double (*action_function)(double);
-	double (*diff_action_function)(double);
+	double output;	
+	double delta_i;
 };
 
 typedef struct Neuron Neuron;
@@ -34,7 +31,8 @@ double _diff_action_function(double input){
 
 //Maybe add a bias term
 double output(Neuron* neuron, double* input) {
-	return _action_function(net_input(neuron, input));
+	neuron->output = _action_function(net_input(neuron, input));
+	return neuron->output;
 }
 
 double net_input(Neuron* neuron, double* input){
@@ -58,7 +56,7 @@ Neuron* initialize_neuron(int n_inputs) {
 	//Initialize weights	
 	for (int i = 0; i < n_inputs; i++) {
 
-		double random_weight = (double)((rand() % 100)-49) / 100000;
+		double random_weight = (double)((rand() % 100)) / pow(10, 4);
 		neuron->_weights[i] = random_weight;
 	}
 	
