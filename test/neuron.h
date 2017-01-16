@@ -41,7 +41,7 @@ double net_input(Neuron* neuron, double* input){
 	for (int i = 0; i < neuron->N_INPUTS; i++) {
 		net += neuron->_weights[i] * input[i];
 	}
-	net += neuron->_weights[neuron->N_INPUTS]; //bias
+
 	neuron->net_input = net;
 
 	return net;

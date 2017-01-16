@@ -80,7 +80,7 @@ void update_network_weights(NeuralNetwork* network, double error, double* input)
 
 	//output neuron
 	network->_neurons[network->N_LAYERS-1][0].delta_i = 2*error;
-	summed_error += sqrd_error;
+	summed_error += error;
 	//printf("delta_i: %lf\n", network->_neurons[2][0].delta_i);
 	
 	//Iterate backwards through the network. Determine delta_i for all neurons 
@@ -96,7 +96,7 @@ void update_network_weights(NeuralNetwork* network, double error, double* input)
 			
 			for(int i = 0; i < network->_n_layer_inputs[layer+2]; i++){
 				
-				net_delta += next_layer[i].delta_i*next_layer[i]._weights[neuron];
+				net_delta += next_layer[i].delta_i*next_layer[i]._weights[neuron];	
 			}
 			
 			current_neuron->delta_i = net_delta*_diff_action_function(current_neuron->output);
@@ -114,7 +114,7 @@ void set_weights(NeuralNetwork* network, double inputs[]){
 		for(int weight = 0; weight < network->_n_layer_inputs[0]; weight++){
 			current_neuron->_weights[weight] += _LEARNING_RATE*current_neuron->delta_i*inputs[weight];
 		}
-		current_neuron->_weights[current_neuron->N_INPUTS] += _LEARNING_RATE*current_neuron->delta_i; //Bias
+		current_neuron->_weights[current_neuron->N_INPUTS] = _LEARNING_RATE*current_neuron->delta_i; //Bias
 
 	}
 	
@@ -129,8 +129,6 @@ void set_weights(NeuralNetwork* network, double inputs[]){
 			for(int i = 0; i < network->_n_layer_inputs[layer]; i++){
 				current_neuron->_weights[i] += _LEARNING_RATE*current_neuron->delta_i*previous_layer[i].output;				
 			}
-	
-			current_neuron->_weights[current_neuron->N_INPUTS] += _LEARNING_RATE*current_neuron->delta_i; //Bias
 		}
 	}
 }
@@ -143,20 +141,18 @@ double network_output(NeuralNetwork* network, double* start_input) {
 
 	for (int layer = 0; layer < network->N_LAYERS; layer++) {
 		double out[network->_n_layer_inputs[layer+1]];
-
+		
 		int i = 0;
 		for (Neuron* neuron = network->_neurons[layer];
 			i < network->_n_layer_inputs[layer + 1];
 			neuron++) {
-		
+			//printf("%f\n", neuron->_weights[0]);
 			out[i++] = output(neuron, input);
 		}
-
-		copy_array(input, out, network->_n_layer_inputs[layer+1]);
+		copy_array(input, out, network->_n_layer_inputs[layer]);
 	}
 	//printf("Weight: %lf\n", network->_neurons[0][1]._weights[1]);
 	//printf("Output: %lf\n", input[0]);
-
 	return input[0];
 }
 

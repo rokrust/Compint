@@ -1,0 +1,106 @@
+void determine_center_distances(Comp_network* network, int k, double center_distances[k][k]){
+	for(int i = 0; i < k - 1; i++){
+		for(int j = i + 1; j < k; k++){
+			double distance = point_distance(network->nodes
+			[i].input_weight, network->nodes[j].input_weight);
+
+			center_distances[i][j] = distance;
+			center_distances[j][i] = distance;
+		}
+	}
+
+}
+
+int find_closest_center(int cur_center, int k, double center_distances[k][k]){
+	
+	int closest_center;
+	double distance = 100000;
+	
+	for(int i = 0; i < k; i++){
+		double cur_distance = center_distances[cur_center][i];
+
+		if(cur_distance < distance && i != cur_center){
+			distance = cur_distance;
+			closest_center = i;
+		}
+	}	
+
+	return closest_center;
+}
+
+
+int find_second_closest_center(int cur_center, int k, double center_distances[k][k]){
+	
+	int second_closest_center;
+	double first_distance = 100000;
+	double second_distance = 100000;
+	
+	for(int i = 0; i < k; i++){
+		double cur_distance = center_distances[cur_center][i];
+
+		if(cur_distance < first_distance && i != cur_center){
+			first_distance = cur_distance;
+		}
+		else if(cur_distance < second_distance && i != cur_center){
+			second_distance = cur_distance;
+			second_closest_center = i;
+		}
+	}	
+
+	return second_closest_center;
+}
+
+
+int find_furthest_center(int cur_center, int k, double center_distances[k][k]){
+	
+	int furthest_center;
+	double distance = 0;
+	
+	for(int i = 0; i < k; i++){
+		double cur_distance = center_distances[cur_center][i];
+
+		if(cur_distance > distance && i != cur_center){
+			distance = cur_distance;
+			closest_center = i;
+		}
+	}	
+
+	return furthest_center;
+}
+
+double find_smallest_center_distance(int k, double center_distances[k][k]){
+	double smallest_distance = 100000000.0;
+
+	for(int i = 0; i < k - 1; i++){
+		for(int j = i + 1; j < k; j++){
+			double cur_distance = center_distances[i][j];
+		
+			if(cur_distance < smallest_distance){
+				smallest_distance = cur_distance;
+			}
+		}
+	}
+	
+	return smallest_distance;
+}
+
+void find_initial_centers(Comp_network* network, double data[1000][DIM], int n_points, int k){
+	double center_distances[k][k];
+	determine_center_distances(network, k, center_distances);	
+	
+	for(int cur_center = 0; cur_center < k; cur_center++){
+		for(int j = 0; j < n_points; j++){
+			int closest_center = 
+				find_closest_center(cur_center, k, center_distances);
+			double cur_distance = 
+				center_distances[cur_center][closest_center];
+			double smallest_distance = 
+				find_smallest_center_distance(k, center_distance);
+
+			if(cur_distance > smallest_distance){
+				
+			}
+		}
+	}
+	
+}

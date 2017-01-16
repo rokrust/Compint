@@ -22,11 +22,11 @@ Neuron* initialize_neuron(int n_inputs);
 
 
 double _action_function(const double summed_weighted_input) {
-	return tanh(summed_weighted_input);
+	return summed_weighted_input;
 }
 
 double _diff_action_function(double input){
-	return 1-pow(tanh(input), 2);
+	return 1;
 }
 
 //Maybe add a bias term
