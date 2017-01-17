@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #define HEIGHT 10
 #define WIDTH 20
 #define N_IMAGES_MAX 10
 #define N_NODES HEIGHT*WIDTH
+#define N_PIXELS HEIGHT*WIDTH
+#define NOISE_PERCENTAGE 0.1
+#define CORRECT_PIXEL_PERCENTAGE_THRESHOLD 0.7
 
 struct Node{
 	int weight[HEIGHT][WIDTH];
@@ -198,7 +202,8 @@ void hopfield_create_char_image(int int_image[HEIGHT][WIDTH], char char_image[HE
 	}	
 }
 
-
+//Returns the image most similar to output_image.
+//Returns -1 if under 70 percent of the pixels are equal.
 int hopfield_find_most_similar_image(int image[N_IMAGES_MAX][HEIGHT][WIDTH], int output_image[HEIGHT][WIDTH], int n_images){
 	int most_similar_image;
 	int highest_pixel_count = 0;
@@ -224,18 +229,59 @@ int hopfield_find_most_similar_image(int image[N_IMAGES_MAX][HEIGHT][WIDTH], int
 		similar_pixels = 0;
 	}
 	
+	//Number of correct pixels under given threshold percentage		
+	if(((double)highest_pixel_count)/N_PIXELS < 
+		CORRECT_PIXEL_PERCENTAGE_THRESHOLD){
+		return -1;
+	}
+
 	return most_similar_image;
 }
 
+//Used to push the network out of a local minimum
+void hopfield_add_noise(int image[HEIGHT][WIDTH]){
+	int n_random_pixels = N_PIXELS*NOISE_PERCENTAGE;
+	
+	//Flip random pixels
+	for(int i = 0; i < n_random_pixels; i++){
+		int rand_row = rand() % HEIGHT;
+		int rand_col = rand() % WIDTH;
 
-void hopfield_print_image(char image[HEIGHT][WIDTH]){
-	for(int row = 0; row < HEIGHT; row++){
-		for(int col = 0; col < WIDTH; col++){
-			printf("%c", image[row][col]);
+		if(image[rand_row][rand_col] == 1){
+			image[rand_row][rand_col] = -1;
 		}
-		printf("\n");
+
+		else if(image[rand_row][rand_col] == -1){
+			image[rand_row][rand_col] = 1;
+		}
+	}
+
+}
+
+void hopfield_recognize_pattern(Hopfield_network* network,
+				int training_image[N_IMAGES_MAX][HEIGHT][WIDTH], 
+				int distorted_image[N_IMAGES_MAX][HEIGHT][WIDTH], 
+				int n_training_images, int n_distorted_images,
+				int most_similar_image[n_distorted_images]){
+
+	for(int i = 0; i < n_distorted_images; i++){
+		
+		//Run until no changes are made to the image
+		while(hopfield_network_output(network, distorted_image[i])){;}
+		
+		most_similar_image[i] = hopfield_find_most_similar_image
+								(training_image, 
+								 distorted_image[i], 
+								 n_training_images);
+		
+		//restart iteration
+		if(most_similar_image[i] == -1){
+			hopfield_add_noise(distorted_image[i]);
+			i--;
+		}
 	}
 }
+
 	
 void hopfield_print_int_image(int image[HEIGHT][WIDTH]){
 	for(int row = 0; row < HEIGHT; row++){
@@ -249,39 +295,25 @@ void hopfield_print_int_image(int image[HEIGHT][WIDTH]){
 			}
 
 		}
+
 		printf("\n");
 	}
 }
 
-void hopfield_print_all_output_images(int output_image[N_IMAGES_MAX][HEIGHT][WIDTH], int n_images){
-	for(int i = 0; i < n_images; i++){
-
-		hopfield_print_int_image(output_image[i]);
-
-		if(i != n_images - 1){
-			printf("-\n");
-		}
-	}
+void hopfield_print_recognized_images(
+				int image[N_IMAGES_MAX][HEIGHT][WIDTH], 
+				int n_output_images){
 	
-
-}
-
-
-void hopfield_compare_and_print_all_output_images(
-					int image[N_IMAGES_MAX][HEIGHT][WIDTH], 
-					int output_image[N_IMAGES_MAX][HEIGHT][WIDTH], 
-					int n_images){
-
-	int image_index;
-	
-	for(int i = 0; i < n_images; i++){
-		image_index = hopfield_find_most_similar_image(
-					image, output_image[i], n_images);
-		
+	for(int i = 0; i < n_output_images; i++){
+		int image_index = most_similar_image[i];
 		hopfield_print_int_image(image[image_index]);
 
-		if(i != n_images - 1){
+		if(i != n_output_images - 1){
 			printf("-\n");
 		}
 	}
+
+
+
 }
+

@@ -16,22 +16,20 @@ int main(){
 	int n_distorted_images = 
 			hopfield_read_running_data(fp, distorted_image);
 
-	//Save patters in network
+	//Save patterns in network
 	Hopfield_network *network = 
 			hopfield_init(training_image, n_training_images);
 	
 	//Recognize pattern
-	for(int i = 0; i < n_distorted_images; i++){
-		
-		//Run until no changes are made to the image
-		while( hopfield_network_output(network, distorted_image[i]) ){;}
-	
-	}
+	int most_similar_image[n_distorted_images];
+	hopfield_recognize_pattern(network, training_image,
+ 							   distorted_image, 
+							   n_training_images, n_distorted_images, 
+							   most_similar_image);
 
-	//Print the resulting images
-	//hopfield_print_all_output_images(distorted_image, n_distorted_images);
-
-	hopfield_compare_and_print_all_output_images(training_image, distorted_image, n_distorted_images);
+	//Print results
+	hopfield_print_recognized_images(training_image, 
+									  n_distorted_images);
 
 	return 0;
 }
