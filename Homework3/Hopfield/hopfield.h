@@ -7,7 +7,7 @@
 #define N_NODES HEIGHT*WIDTH
 
 struct Node{
-	double weight[HEIGHT][WIDTH];
+	int weight[HEIGHT][WIDTH];
 	int row, col;
 	
 }; typedef struct Node Node;
@@ -43,7 +43,7 @@ Hopfield_network* hopfield_init(int training_image[N_IMAGES_MAX][HEIGHT][WIDTH],
 					for(int j = 0; j < WIDTH; j++){
 						//initial weight is the product of the two 	
 						//pixel values
-						double initial_weight = 		
+						int initial_weight = 		
 							training_image[image][row][col] * 
 							training_image[image][i][j];
 						
@@ -116,6 +116,7 @@ int hopfield_read_running_data(FILE* fp, int distorted_image[N_IMAGES_MAX][HEIGH
 			
 		}
 		
+		//Reads the lines between the images
 		stay_in_loop = fgets(inputString, 200, fp);
 		image_index++;
 	}
@@ -124,41 +125,61 @@ int hopfield_read_running_data(FILE* fp, int distorted_image[N_IMAGES_MAX][HEIGH
 	
 }
 
-double hopfield_node_output(Node node, int image[HEIGHT][WIDTH]){
-	double output = 0;
+int hopfield_node_output(Node node, int image[HEIGHT][WIDTH]){
+	int output = 0;
 	
 	for(int i = 0; i < HEIGHT; i++){
 		for(int j = 0; j < WIDTH; j++){
-			double w_ij = node.weight[i][j];
+			int w_ij = node.weight[i][j];
 			
 		
-			output += w_ij*image[i][j];	
+			output += w_ij*image[i][j];
 			
 		}
 	}
 	
 }
 
-void hopfield_network_output(Hopfield_network* network, int image[HEIGHT][WIDTH], char output_image[HEIGHT][WIDTH]){
+//Saves the resulting image in output_image, 
+//compares with old_image to check if any updates 
+//where made and returns this as a boolean (termination check)
+int hopfield_network_output(Hopfield_network* network, 
+						int output_image[HEIGHT][WIDTH]){
+	
+	int updates_made = 0;
 
 	for(int row = 0; row < HEIGHT; row++){
 		for(int col = 0; col < WIDTH; col++){
-			double node_output = 
-				hopfield_node_output(network->node[row][col], image);
+			int node_output = 
+				hopfield_node_output(network->node[row][col], 
+									 output_image);
+			int old_pixel_value = output_image[row][col];
 			
 			if(node_output >= 0){
-				output_image[row][col] = '*';
+				output_image[row][col] = 1;
 			}
 
 			else{
-				output_image[row][col] = '.';
+				output_image[row][col] = -1;
 			}
+
+			if(output_image[row][col] != old_pixel_value){
+				updates_made = 1;
+			}
+
 		}
 	}
+
+	return updates_made;
 }
 
-void hopfield_update_weights(Hopfield_network* network){
+int hopfield_update_weights(Hopfield_network* network, int image[HEIGHT][WIDTH]){
+	int update_made = 0;
+
 	
+
+
+	return update_made;		
 }
 
 void hopfield_print_image(char image[HEIGHT][WIDTH]){
@@ -173,13 +194,27 @@ void hopfield_print_image(char image[HEIGHT][WIDTH]){
 void hopfield_print_int_image(int image[HEIGHT][WIDTH]){
 	for(int row = 0; row < HEIGHT; row++){
 		for(int col = 0; col < WIDTH; col++){
-			if(image[row][col] == 1){
+			if(image[row][col] >= 0){
 				printf("*");
 			}
-			else if(image[row][col] == -1){
+
+			else if(image[row][col] < 0){
 				printf(".");
 			}
+
 		}
 		printf("\n");
 	}
+}
+
+void hopfield_print_all_output_images(int image[N_IMAGES_MAX][HEIGHT][WIDTH], int n_images){
+	
+		for(int i = 0; i < n_images-1; i++){
+			
+			hopfield_print_int_image(image[i]);
+			printf("-\n");
+		}
+
+
+		hopfield_print_int_image(image[n_images - 1]);
 }
