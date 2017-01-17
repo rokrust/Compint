@@ -11,7 +11,7 @@ int main(){
 	//Read traning images
 	int n_training_images = 
 			hopfield_read_training_data(fp, training_image);
-	
+
 	//Read distorted images
 	int n_distorted_images = 
 			hopfield_read_running_data(fp, distorted_image);
@@ -28,7 +28,10 @@ int main(){
 	
 	}
 
-	hopfield_print_all_output_images(distorted_image, n_distorted_images);
+	//Print the resulting images
+	//hopfield_print_all_output_images(distorted_image, n_distorted_images);
+
+	hopfield_compare_and_print_all_output_images(training_image, distorted_image, n_distorted_images);
 
 	return 0;
 }
