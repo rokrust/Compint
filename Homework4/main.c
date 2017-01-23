@@ -1,16 +1,18 @@
 #include "fuzzy.h"
 
 int main(){
-    Data data;
-    int n_samples = fuzzy_read_data(&data);
+    FILE* fp = fopen("testInput41A.txt", "r");
 
-    for(int i = 0; i < n_samples; i++){
-        Wheel_speed wheel_speed = fuzzy_determine_wheel_speeds(data, i);
-        //printf("%lf,", wheel_speed.left_wheel_speed);
-        //printf("%lf\n", wheel_speed.right_wheel_speed);
-        //printf("%lf,%lf\n", wheel_speed.left_wheel_speed, wheel_speed.right_wheel_speed);
-        fuzzy_print_wheel_speeds(wheel_speed);
+    Data ref_data;
+    int n_samples = fuzzy_read_data(fp, &ref_data);
+
+    Robot_state current_state = ref_data.state[0];
+
+    for(int i = 1; i < n_samples; i++){
+        current_state = fuzzy_calculate_next_state(ref_data.state[i], current_state);
+        printf("%lf,%lf,%lf\n", current_state.pos.x, current_state.pos.y, current_state.angle);
     }
 
+    fclose(fp);
     return 0;
 }

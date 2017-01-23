@@ -5,6 +5,13 @@
 
 #define N_RULES 4
 #define N_INPUT_VARIABLES 2
+#define WHEEL_DISTANCE 0.16
+
+
+typedef struct{
+    double left_wheel_speed;
+    double right_wheel_speed;
+} Wheel_speed;
 
 typedef struct{
     double x;
@@ -13,25 +20,16 @@ typedef struct{
 } Position;
 
 typedef struct{
-    Position ref_pos[1000];
-    double ref_angle[1000];
-    Position cur_pos[1000];
-    double cur_angle[1000];
+    double angle;
+    Position pos;
+    Wheel_speed wheel_speed;
+
+} Robot_state;
+
+typedef struct{
+    Robot_state state[1000];
 
 } Data;
-
-typedef struct{
-    double mu_small_de;
-    double mu_large_de;
-    double mu_small_thetae;
-    double mu_large_thetae;
-
-} Mu;
-
-typedef struct{
-    double left_wheel_speed;
-    double right_wheel_speed;
-} Wheel_speed;
 
 typedef enum{
     SMALL = 0,
@@ -49,36 +47,78 @@ double fuzzy_de_membership_func(double d_error, ERR_EXP error_expression);
 double fuzzy_thetae_membership_func(double h_error, ERR_EXP error_expression);
 void fuzzy_membership_function_output(double de_error, double dh_error, double mu[N_RULES][N_INPUT_VARIABLES]);
 Wheel_speed fuzzy_determine_rule_output(double de, double thetae, int rule_nbr);
+double fuzzy_robot_velocity(Robot_state current_state);
+double fuzzy_robot_angular_velocity(Robot_state current_state);
+Wheel_speed fuzzy_determine_wheel_speeds(Robot_state ref_state, Robot_state current_state);
 
 
-int fuzzy_read_data(Data* data){
-    FILE* fp = fopen("testInput41A.txt", "r");
-
+int fuzzy_read_data(FILE* fp, Data* ref_data){
     char input_string[100];
 
     int i = 0;
 
     while(fgets(input_string, 100, fp) != NULL){
-
-        sscanf(input_string, "%lf,%lf,%lf,%lf,%lf,%lf\n",
-               &(data->ref_pos[i].x), &(data->ref_pos[i].y), &(data->ref_angle[i]),
-               &(data->cur_pos[i].x), &(data->cur_pos[i].y), &(data->cur_angle[i]));
+        sscanf(input_string, "%lf,%lf,%lf\n",
+               &(ref_data->state[i].pos.x), &(ref_data->state[i].pos.y), &(ref_data->state[i].angle));
 
         i++;
     }
 
+    ref_data->state[0].wheel_speed.left_wheel_speed = 0;
+    ref_data->state[0].wheel_speed.right_wheel_speed = 0;
+
+
     return i;
 }
 
+Robot_state fuzzy_calculate_next_state(Robot_state ref_state, Robot_state current_state){
+    Robot_state next_state;
 
-Wheel_speed fuzzy_determine_wheel_speeds(Data data, int input_nbr){
+    double robot_mean_velocity = fuzzy_robot_velocity(current_state);
+    double robot_angular_velocity = fuzzy_robot_angular_velocity(current_state);
+
+    next_state.angle = current_state.angle + robot_angular_velocity;
+    next_state.pos.x = current_state.pos.x + robot_mean_velocity*cos(current_state.angle);
+    next_state.pos.y = current_state.pos.y + robot_mean_velocity*sin(current_state.angle);
+    next_state.wheel_speed = fuzzy_determine_wheel_speeds(ref_state, current_state);
+
+    return next_state;
+}
+
+Robot_state fuzzy_init_robot_state(FILE* fp){
+    Robot_state initial_state;
+
+    char input_string[100];
+
+    fgets(input_string, 100, fp);
+    sscanf(input_string, "%lf,%lf,%lf\n",
+           &(initial_state.pos.x), &(initial_state.pos.y), &(initial_state.angle));
+
+    initial_state.wheel_speed.left_wheel_speed = 0;
+    initial_state.wheel_speed.right_wheel_speed = 0;
+
+    return initial_state;
+}
+
+double fuzzy_robot_velocity(Robot_state current_state){
+    return (current_state.wheel_speed.left_wheel_speed + current_state.wheel_speed.right_wheel_speed) / 2;
+}
+
+double fuzzy_robot_angular_velocity(Robot_state current_state){
+    return (current_state.wheel_speed.left_wheel_speed - current_state.wheel_speed.right_wheel_speed) / WHEEL_DISTANCE;
+}
+
+
+Wheel_speed fuzzy_determine_wheel_speeds(Robot_state ref_state, Robot_state current_state){
     Wheel_speed wheel_speed;
+    wheel_speed.left_wheel_speed = 0;
+    wheel_speed.right_wheel_speed = 0;
 
-    double de_error = distance(data.cur_pos[input_nbr], data.ref_pos[input_nbr]);
-    double dh_error = fabs(data.ref_angle[input_nbr] - data.cur_angle[input_nbr]);
+    double de_error = distance(current_state.pos, ref_state.pos);
+    double dh_error = (ref_state.angle - current_state.angle);
 
     double mu[N_RULES][N_INPUT_VARIABLES];
-    fuzzy_membership_function_output(de_error, dh_error, mu);
+    fuzzy_membership_function_output(de_error, fabs(dh_error), mu);
 
     double w_i_sum = 0;
     for(int i = 0; i < N_RULES; i++){
@@ -98,6 +138,7 @@ Wheel_speed fuzzy_determine_wheel_speeds(Data data, int input_nbr){
     return wheel_speed;
 }
 
+
 Wheel_speed fuzzy_determine_rule_output(double de, double thetae, int rule_nbr){
     Wheel_speed u_i;
 
@@ -109,15 +150,12 @@ Wheel_speed fuzzy_determine_rule_output(double de, double thetae, int rule_nbr){
 
 
 
-//*****************************Ok************************************//
-
-int fuzzy_print_wheel_speeds(Wheel_speed wheel_speed){
-    return printf("%lf,%lf", wheel_speed.left_wheel_speed, wheel_speed.right_wheel_speed);
+void fuzzy_print_wheel_speeds(Wheel_speed wheel_speed){
+    printf("%lf,%lf\n", wheel_speed.left_wheel_speed, wheel_speed.right_wheel_speed);
 }
 
 //Puts all mu into mu_array
 void fuzzy_membership_function_output(double de_error, double dh_error, double mu[N_RULES][N_INPUT_VARIABLES]){
-
     mu[0][0] = fuzzy_de_membership_func(de_error, SMALL);
     mu[1][0] = mu[0][0];
 
@@ -168,15 +206,6 @@ double fuzzy_thetae_membership_func(double h_error, ERR_EXP error_expression){
     }
 
 }
-
-
-
-
-
-
-
-
-
 
 
 double distance(Position from, Position to){
