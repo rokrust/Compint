@@ -10,7 +10,7 @@ int main(){
 
     for(int i = 1; i < n_samples; i++){
         current_state = fuzzy_calculate_next_state(ref_data.state[i], current_state);
-        printf("%lf,%lf,%lf\n", current_state.pos.x, current_state.pos.y, current_state.angle);
+        printf("%f,%f,%f\n", current_state.pos.x, current_state.pos.y, current_state.angle);
     }
 
     fclose(fp);

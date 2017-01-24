@@ -31,6 +31,11 @@ typedef struct{
 
 } Data;
 
+typedef struct{
+    Robot_state ref_state[1000];
+    Robot_state current_state[1000];
+} Old_data;
+
 typedef enum{
     SMALL = 0,
     LARGE
@@ -68,44 +73,31 @@ int fuzzy_read_data(FILE* fp, Data* ref_data){
     ref_data->state[0].wheel_speed.right_wheel_speed = 0;
 
 
-    return i;
+    return i + 1;
 }
+
 
 Robot_state fuzzy_calculate_next_state(Robot_state ref_state, Robot_state current_state){
     Robot_state next_state;
 
     double robot_mean_velocity = fuzzy_robot_velocity(current_state);
     double robot_angular_velocity = fuzzy_robot_angular_velocity(current_state);
+    //printf("%f,%f\n", robot_mean_velocity, robot_angular_velocity);
 
     next_state.angle = current_state.angle + robot_angular_velocity;
     next_state.pos.x = current_state.pos.x + robot_mean_velocity*cos(current_state.angle);
     next_state.pos.y = current_state.pos.y + robot_mean_velocity*sin(current_state.angle);
-    next_state.wheel_speed = fuzzy_determine_wheel_speeds(ref_state, current_state);
+    next_state.wheel_speed = fuzzy_determine_wheel_speeds(ref_state, next_state);
 
     return next_state;
 }
 
-Robot_state fuzzy_init_robot_state(FILE* fp){
-    Robot_state initial_state;
-
-    char input_string[100];
-
-    fgets(input_string, 100, fp);
-    sscanf(input_string, "%lf,%lf,%lf\n",
-           &(initial_state.pos.x), &(initial_state.pos.y), &(initial_state.angle));
-
-    initial_state.wheel_speed.left_wheel_speed = 0;
-    initial_state.wheel_speed.right_wheel_speed = 0;
-
-    return initial_state;
-}
-
 double fuzzy_robot_velocity(Robot_state current_state){
-    return (current_state.wheel_speed.left_wheel_speed + current_state.wheel_speed.right_wheel_speed) / 2;
+    return ((current_state.wheel_speed.left_wheel_speed + current_state.wheel_speed.right_wheel_speed) / 2);
 }
 
 double fuzzy_robot_angular_velocity(Robot_state current_state){
-    return (current_state.wheel_speed.left_wheel_speed - current_state.wheel_speed.right_wheel_speed) / WHEEL_DISTANCE;
+    return ((current_state.wheel_speed.left_wheel_speed - current_state.wheel_speed.right_wheel_speed) / WHEEL_DISTANCE);
 }
 
 
@@ -114,7 +106,8 @@ Wheel_speed fuzzy_determine_wheel_speeds(Robot_state ref_state, Robot_state curr
     wheel_speed.left_wheel_speed = 0;
     wheel_speed.right_wheel_speed = 0;
 
-    double de_error = distance(current_state.pos, ref_state.pos);
+    //printf("Ref: %f,%f\nCur: %f,%f\n", ref_state.pos.x, ref_state.pos.y, current_state.pos.x, current_state.pos.y);
+    double de_error = distance(ref_state.pos, current_state.pos);
     double dh_error = (ref_state.angle - current_state.angle);
 
     double mu[N_RULES][N_INPUT_VARIABLES];
@@ -134,6 +127,7 @@ Wheel_speed fuzzy_determine_wheel_speeds(Robot_state ref_state, Robot_state curr
     wheel_speed.left_wheel_speed /= w_i_sum;
     wheel_speed.right_wheel_speed /= w_i_sum;
 
+    //printf("Wheel: %f,%f\n\n", wheel_speed.left_wheel_speed, wheel_speed.right_wheel_speed);
 
     return wheel_speed;
 }
@@ -236,4 +230,22 @@ double max(double a, double b){
         return b;
     }
 
+}
+
+
+int fuzzy_read_old_data(FILE* fp, Old_data* data){
+    char input_string[100];
+
+    int i = 0;
+
+    while(fgets(input_string, 100, fp) != NULL){
+        sscanf(input_string, "%lf,%lf,%lf,%lf,%lf,%lf\n",
+               &(data->ref_state[i].pos.x), &(data->ref_state[i].pos.y), &(data->ref_state[i].angle),
+               &(data->current_state[i].pos.x), &(data->current_state[i].pos.y), &(data->current_state[i].angle));
+
+        i++;
+    }
+
+
+    return i;
 }
